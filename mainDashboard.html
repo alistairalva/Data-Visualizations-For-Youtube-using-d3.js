@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!--Import Google Icon Font-->
+    <!--Let browser know website is optimized for mobile-->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Varela Round&family=Quicksand&family=Codystar&family=Varela+Round&display=swap" rel="stylesheet"> 
+    <meta charset="UTF-8">
+    <title>Dashboard</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+        }
+
+        #dashboard-container {
+            max-width: 1200px;
+            margin: 20px auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        #chart-frame {
+            width: 100%;
+            height: 500px;
+            resize: both;
+            overflow: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+
+        #chart-description {
+            margin-top: 10px;
+        }
+
+        #chart-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        button {
+            padding: 10px;
+            font-size: 14px;
+            cursor: pointer;
+            background-color: #3498db;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+        h1 {
+            text-align: center;
+            font-family: 'Codystar', sans-serif;
+            font-size: 60px;
+            font-weight: 900;
+            color: #004350;
+        }
+        h2 {
+            text-align: center;
+            font-family: 'Varela Round', sans-serif;
+            font-size: 30px;
+            font-weight: bold;
+            color: #004350;
+        }
+        h3 {
+            text-align: center;
+            font-family: 'Varela Round', sans-serif;
+            font-size: 20px;
+            font-weight: bolder;
+            color: #004350;
+        }
+        p {
+            text-align: center;
+            font-family: 'QuickSand', sans-serif;
+            font-size: 15px;
+            font-weight: bolder;
+            color: #004350;
+        }
+    </style>
+</head>
+<body>
+    <h1>Main Dashboard</h1>
+    <h2>Here are the various charts I created to visualize the raw data from <a href="./data/top_100_youtubers.csv">The top 100 youtubers</a> 
+        & <a href="./data/avg_view_every_year.csv">The average view per year</a> </h2>
+    <h3>Click on the buttons below to see the charts, Enjoy!</h3>
+    <div id="dashboard-container">
+        <div id="chart-buttons">
+            <button onclick="changeChart('./barchart.html', 'Bar Chart')">Youtubers in Each Country</button>
+            <button onclick="changeChart('./donutChart.html', 'Donut Chart')">Top 100 YouTube Channels by Category</button>
+            <button onclick="changeChart('./horizontalbarchart.html', 'Horizontal Bar Chart')">Channels with the most subscribers</button>
+            <button onclick="changeChart('./horizontalgroupbarchart.html', 'Horizontal Group Bar Chart')">Top 5 Youtube Channels Quarterly Income</button>
+            <button onclick="changeChart('./interactivebarchart.html', 'Interactive Bar Chart')">Number of Youtube Channels per country</button>
+            <button onclick="changeChart('./linechart.html', 'Line Chart')">Top 5 Channels Average Views Every Year</button>
+            <button onclick="changeChart('./pieChart.html', 'Pie Chart')">Categories with the most followers</button>
+            <button onclick="changeChart('./scatterplot.html', 'Scatter Plot')">The relationship between the number of likes and subscribers</button>
+            <button onclick="changeChart('./youtuberbarchart.html', 'Youtuber Bar Chart')">The number of Youtubers in each Country</button>
+        </div>
+        
+        <iframe id="chart-frame" src=""></iframe>
+        
+        <div id="chart-description"></div>
+    </div>
+
+    <script>
+        function changeChart(chartPath) {
+            document.getElementById('chart-frame').src = chartPath;
+
+            // Retrieve description from the loaded chart file
+            var iframe = document.getElementById('chart-frame');
+            iframe.onload = function() {
+                var chartDescription = iframe.contentDocument.getElementById('description');
+                if (chartDescription) {
+                    document.getElementById('chart-description').innerHTML = chartDescription.innerHTML;
+                } else {
+                    document.getElementById('chart-description').innerHTML = "Description not available.";
+                }
+            };
+        }
+    </script>
+</body>
+</html>

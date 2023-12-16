@@ -1,0 +1,148 @@
+<!-- 
+    This is a bar chart to show the countries with the most number of youtubers.
+    The data is from a csv file located in the data folder. ./data/top_100_youtubers.csv
+    The format of the file looks like this:
+    Country,ChannelName,Category,MainVideo Category,username,followers,Maintopic,Moretopics,Likes,BoostIndex,EngagementRate,EngagementRate60days,Views,ViewsAvg.,CommentsAvg,YoutubeLink,,,started,Income q1,Income q2,Income q3,Income q4
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link href="https://fonts.googleapis.com/css2?family=Varela Round&family=Quicksand&family=Codystar&family=Varela+Round&display=swap" rel="stylesheet"> 
+    <meta charset="UTF-8">
+    <title>Chart with d3 and SVG</title>
+    <script src="http://d3js.org/d3.v7.min.js" charset="utf-8"></script>  
+    <style>
+        svg{
+            background: wheat;
+        }
+        .tooltip {
+        font-family: 'Quicksand', sans-serif;
+        }
+        .tooltip rect {
+            fill: none;
+        }
+        #description {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="barchart"></div>
+    <div id="description">
+        <h2>Bar Chart</h2>
+        <p>This is a bar chart to show the countries with the most number of youtubers.</p>
+        <p>The data is from a csv file located in the data folder. ./data/top_100_youtubers.csv</p>
+    <div>
+    <script>
+        var svgwidth = 600;
+        var svgheight = 600;
+        var padding = 100;
+
+    // Load the CSV data
+    d3.csv('./data/top_100_youtubers.csv').then(function(data) {
+
+    // Group the data by country and count the number of channels in each country
+    var countryCounts = d3.rollup(data, v => v.length, d => d.Country);
+
+    // Convert the grouped data to an array
+    var countryData = Array.from(countryCounts, ([country, count]) => ({ country, count }));
+
+    var inner_width = svgwidth - padding;
+    var inner_height = svgheight -padding;
+
+    // Select the chart container
+    var svg = d3.select('body').append('svg')
+    .attr('width', svgwidth)
+    .attr('height', svgheight)
+
+    // Add a title to the top of the SVG
+    svg.append('text')
+        .attr('x', svgwidth / 2)
+        .attr('y', padding / 2)
+        .attr('text-anchor', 'middle')
+        .style('font-size', '24px')
+        .style('font-weight', 'bold')
+        .style('font-family', 'Varela Round')
+        .text('The number of youtubers in each country');
+        
+    var g = svg.append('g')
+
+    // Define the scales
+    var xScale = d3.scaleBand()
+        .domain(countryData.map(d => d.country))
+        .range([padding, inner_width])
+        .padding(0.1);
+
+    var yScale = d3.scaleLinear()
+        .domain([0, d3.max(countryData, d => d.count)])
+        .range([inner_height, padding]);
+
+    // Draw the bars
+    g.selectAll('rect')
+        .data(countryData)
+        .enter()
+        .append('rect')
+        .attr('x', d => xScale(d.country))
+        .attr('y', d => yScale(d.count))
+        .attr('width', xScale.bandwidth())
+        .attr('height', d => inner_height - yScale(d.count))
+        .attr('fill', 'steelblue')
+        .on('mouseover', function(d) {
+            d3.select(this)
+                .attr('fill', '#ff0000');
+
+            // Define the tooltip
+            var tooltip = d3.select('body').append('div')
+                .attr('class', 'tooltip')
+                .style('position', 'absolute')
+                .style('background', '#f4f4f4')
+                .style('padding', '5 15px')
+                .style('border', '1px #333 solid')
+                .style('border-radius', '5px')
+                .style('opacity', '0.8')
+                .style('font-family', 'Quicksand')
+                .style('font-size', '12px')
+                .style('font-weight', 'bold')
+                .style('left', (d3.event.pageX + 10) + 'px')
+                .style('top', (d3.event.pageY - 10) + 'px')
+                .style('display', 'inline-block')
+                .html(d.country + '<br>' + d.count + ' channels');
+        })
+        .on('mouseout', function(d) {
+            d3.select(this)
+                .attr('fill', 'steelblue');
+            d3.select('.tooltip').remove();
+        });
+
+    // Draw the x axis
+    g.append('g')
+        .attr('transform', 'translate(0, ' + inner_height + ')')
+        .call(d3.axisBottom(xScale));
+
+    // Draw the y axis
+    g.append('g')
+        .attr('transform', 'translate(' + padding + ', 0)')
+        .call(d3.axisLeft(yScale));
+
+    // Add x-axis label
+    g.append('text')
+        .attr('x', svgwidth / 2)
+        .attr('y', svgheight - padding / 2)
+        .attr('text-anchor', 'middle')
+        .text('Country')
+        .style('font-family', 'Quicksand')
+        .style('font-weight', 'bold');
+
+    // Add y-axis label
+    g.append('text')
+        .attr('x', -inner_height / 2)
+        .attr('y', padding / 2)
+        .attr('transform', 'rotate(-90)')
+        .attr('text-anchor', 'middle')
+        .text('Number of channels')
+        .style('font-family', 'Quicksand')
+        .style('font-weight', 'bold');
+    });
+    </script>
+</body>
+</html>

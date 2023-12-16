@@ -1,0 +1,134 @@
+<!--  
+    This is a donut chart to show The proportion of the top 100 YouTube channels in each category.
+    The data is from a csv file located in the data folder. ./data/top_100_youtubers.csv
+    The format of the file looks like this: 
+    Country,ChannelName,Category,MainVideo Category,username,followers,Maintopic,Moretopics,Likes,BoostIndex,EngagementRate,EngagementRate60days,Views,ViewsAvg.,CommentsAvg,YoutubeLink,,,started,Income q1,Income q2,Income q3,Income q4
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link href="https://fonts.googleapis.com/css2?family=Varela Round&family=Quicksand&family=Codystar&family=Varela+Round&display=swap" rel="stylesheet"> 
+    <meta charset="UTF-8">
+    <title>Chart with d3 and SVG</title>
+    <script src="http://d3js.org/d3.v7.min.js" charset="utf-8"></script>  
+    <style>
+        svg{
+            background: wheat;
+        }
+        .tooltip {
+        font-family: 'Quicksand', sans-serif;
+        }
+        .tooltip rect {
+            fill: none;
+        }
+        #description {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="donut_chart"></div>
+    <div id="description">
+        <h2>Donut Chart</h2>
+        <p>This is a donut chart to show The proportion of the top 100 YouTube channels in each category.</p>
+        <p>Hover over the chart to see the proportion of the top 100 YouTube channels in each category.</p>
+        <p>The data is from a csv file located in the data folder. ./data/top_100_youtubers.csv</p>
+    </div>
+    <script>
+        var svgwidth = 600;
+        var svgheight = 600;
+        var padding = 100;
+
+    // Load the CSV data
+    d3.csv('./data/top_100_youtubers.csv').then(function(data) {
+
+    // Group the data by category and count the number of channels in each category
+    var categoryCounts = d3.rollup(data, v => v.length, d => d.Category);
+
+    // Convert the grouped data to an array
+    var categoryData = Array.from(categoryCounts, ([category, count]) => ({ category, count }));
+
+    var inner_width = svgwidth - padding;
+    var inner_height = svgheight -padding;
+
+    // Select the chart container
+    var svg = d3.select('body').append('svg')
+    .attr('width', svgwidth)
+    .attr('height', svgheight)
+
+    // Add a title to the top of the SVG
+    svg.append('text')
+        .attr('x', svgwidth / 2)
+        .attr('y', padding / 2)
+        .attr('text-anchor', 'middle')
+        .style('font-size', '24px')
+        .style('font-weight', 'bold')
+        .style('font-family', 'Varela Round')
+        .text('Top 100 YouTube Channels by Category');
+        
+    var g = svg.append('g')
+        .attr('transform', 'translate(' + inner_width / 1.75 + ',' +  (inner_height / 2 + padding - 20) + ')'); // Center the chart
+    // Calculate the radius of the donut chart
+    var radius = Math.min(inner_width, inner_height) / 2;
+
+    // Define the color scale
+    var colorScale = d3.scaleOrdinal(d3.schemeCategory10);
+
+    
+    // Define the arc generator
+    var arc = d3.arc()
+    .innerRadius(radius * 0.5)
+    .outerRadius(radius * 1);
+
+    // Define the pie generator
+    var pie = d3.pie()
+    .value((d) => { return d.count; });
+
+    // Create the donut chart
+    var arcs = g.selectAll('arc')
+    .data(pie(categoryData))
+    .enter().append('g')
+    .attr('class', 'arc');
+
+    arcs.append('path')
+    .attr('d', arc)
+    .attr('fill', function(d) { return colorScale(d.data.category); })
+    .attr('stroke', 'black')
+    .style('stroke-width', '1px')
+    .on('mouseover', function (event, d) {
+        // Highlight the arc
+        d3.select(this).style('opacity', 0.7);
+
+        // Create the tooltip
+        var tooltip = g.append('g')
+            .attr('class', 'tooltip');
+
+        tooltip.append('rect')
+        .attr('width', 150) // adjust as needed
+        .attr('height', 30) // adjust as needed
+        .attr('x', -75) // adjust as needed
+        .attr('y', -15) // adjust as needed
+
+        tooltip.append('text')
+            .attr('id', 'tooltip')
+            .attr('x', 0)
+            .attr('y', 0)
+            .attr('text-anchor', 'middle')
+            .attr('font-size', '18px')
+
+            .attr('background-color', 'white')
+            .text(d.data.category + ': ' + d.data.count + ' channels');
+    })
+    .on('mouseout', function (d) {
+        // Un-highlight the arc
+        d3.select(this).style('opacity', 1);
+
+        // Remove the tooltip
+        d3.select('#tooltip').remove();
+    });
+    }).catch(function(error) {
+    console.log(error);
+    });
+    </script>
+</body>
+</html>

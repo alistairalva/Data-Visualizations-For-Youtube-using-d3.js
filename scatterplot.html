@@ -1,0 +1,205 @@
+<!-- 
+    This is a scatterplot to show the relationship between the number of 'likes' and 'subscribers' of the top 100 YouTube channels.
+    The data is loaded from a CSV file. Location: Project2/data/top_100_youtubers.csv
+    The data format of the file looks like this:
+    Country,ChannelName,Category,MainVideo Category,username,followers,Maintopic,Moretopics,Likes,BoostIndex,EngagementRate,EngagementRate60days,Views,ViewsAvg.,CommentsAvg,YoutubeLink,,,started,Income q1,Income q2,Income q3,Income q4
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link href="https://fonts.googleapis.com/css2?family=Varela Round&family=Quicksand&family=Codystar&family=Varela+Round&display=swap" rel="stylesheet"> 
+    <meta charset="UTF-8">
+    <title>Chart with d3 and SVG</title>
+    <script src="http://d3js.org/d3.v7.min.js" charset="utf-8"></script>  
+    <style>
+        svg{
+            background: wheat;
+        }
+        .tooltip {
+        font-family: 'Quicksand', sans-serif;
+        }
+        .tooltip rect {
+            fill: none;
+        }
+        .highlight {
+        color: red;  /*Change this to the color you want */
+        }
+        #description {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="scatterplot"></div>
+    <div id="description">
+        <h2> Zoomable Scatterplot</h2>
+        <p>This is a scatterplot to show the relationship between the number of 'likes' and 'subscribers' of the top 100 YouTube channels.</p>
+        <p>Hover over the chart to see the number of 'likes' and 'subscribers' of the corresponding channel.</p>
+        <p>Use the mouse wheel to zoom in and out. You can view heavily clustered data points more clearly by zooming in.</p>
+        <p>The data is loaded from a CSV file. Location: Project2/data/top_100_youtubers.csv</p>
+    <div>
+    <script>
+        // Define the dimensions and padding
+var svgwidth = 900, svgheight = 700, padding = 50;
+var inner_width = svgwidth - 2 * padding;
+var inner_height = svgheight - 2 * padding;
+
+// Select the chart container
+var svg = d3.select('body').append('svg')
+    .attr('width', svgwidth)
+    .attr('height', svgheight);
+
+// Add a title to the top of the SVG
+svg.append('text')
+    .attr('x', svgwidth / 2)
+    .attr('y', padding / 2)
+    .attr('text-anchor', 'middle')
+    .style('font-size', '20px')
+    .style('font-weight', 'bold')
+    .style('font-family', 'Varela Round')
+    .text('The relationship between the number of likes and subscribers');
+
+// Load the data
+d3.csv('./data/top_100_youtubers.csv').then(function(data) {
+    // Parse the data
+    data.forEach(function(d) {
+        d.Likes = +d.Likes;
+        d.followers = +d.followers;
+    });
+
+    // Define the scales
+    var xScale = d3.scaleLinear()
+        .domain([0, d3.max(data, d => d.Likes)])
+        .range([padding, inner_width]);
+
+    var yScale = d3.scaleLinear()
+        .domain([0, d3.max(data, d => d.followers)])
+        .range([inner_height, padding]);
+
+    // Define the color scale
+    var color = d3.scaleOrdinal(d3.schemeCategory10);
+
+    // Define the translation
+    var translateX = 50, translateY = 40;
+
+    // Create the g group
+    var g = svg.append('g')
+    .attr('transform', 'translate(' + translateX + ', ' + translateY + ')');
+
+    // Create the scatter plot
+    var scatterplot = g.selectAll('circle')
+        .data(data)
+        .enter()
+        .append('circle')
+        .attr('cx', d => xScale(d.Likes))
+        .attr('cy', d => yScale(d.followers))
+        .attr('r', 5)
+        .attr('fill', d => color(d.Category))
+        .on('mouseover', function(event, d) {
+        // Create the tooltip
+        var tooltip = d3.select('body').append('div')
+            .attr('class', 'tooltip')
+            .style('position', 'absolute')
+            .style('background-color', 'white')
+            .style('padding', '5px')
+            .style('border', '1px solid black')
+            .style('border-radius', '5px')
+            .html('Channel: <span class="highlight">' + d.ChannelName + '</span> Likes: <span class="highlight">' + d.Likes + '</span> Subscribers: <span class="highlight">' + d.followers + '</span>');
+
+        // Position the tooltip
+        tooltip.style('left', (d3.pointer(event)[0] + 10) + 'px')
+            .style('top', (d3.pointer(event)[1] + 10) + 'px');
+    })
+    .on('mouseout', function(d) {
+        // Remove the tooltip
+        d3.select('.tooltip').remove();
+    });
+
+    // Define the zoom behavior
+var zoom = d3.zoom()
+    .scaleExtent([1, 10])
+    .on('zoom', function(event) {
+        // Update the scatter plot
+        g.attr('transform', event.transform);
+
+        // Update the x-axis
+        svg.select(".x-axis").call(xAxis.scale(event.transform.rescaleX(xScale)));
+
+        // Update the y-axis
+        svg.select(".y-axis").call(yAxis.scale(event.transform.rescaleY(yScale)));
+    });
+    // Create the x-axis
+    var xAxis = d3.axisBottom(xScale);
+
+    g.append('g')
+        .attr('transform', 'translate(0, ' + (inner_height) + ')')
+        .call(xAxis);
+
+    // Create the y-axis
+    var yAxis = d3.axisLeft(yScale);
+
+    // Add x-axis label
+    g.append('text')
+        .attr('x', inner_width / 2 + padding)
+        .attr('y', svgheight - padding)
+        .attr('text-anchor', 'middle')
+        .text('Likes')
+        .style('font-family', 'Quicksand')
+        .style('font-weight', 'bold');
+
+    // Add y-axis label
+    g.append('text')
+        .attr('x', -inner_height / 2 - padding)
+        .attr('y', (padding / 2) - 50)
+        .attr('text-anchor', 'middle')
+        .attr('transform', 'rotate(-90)')
+        .text('Subscribers')
+        .style('font-family', 'Quicksand')
+        .style('font-weight', 'bold');
+
+    g.append('g')
+        .attr('transform', 'translate(' + padding + ', 0)')
+        .call(yAxis);
+
+    // Define the zoom behavior
+    var zoom = d3.zoom()
+        .scaleExtent([1, 10])
+    .on('zoom', function(event) {
+        // Define the zoom behavior
+        var zoom = d3.zoom()
+            .scaleExtent([1, 10])
+            .on('zoom', function(event) {
+                // Only apply the transform if the zoom scale is not 1
+                if (event.transform.k !== 1) {
+                    // Update the scatter plot
+                    g.attr('transform', event.transform);
+
+                    // Keep the dots the same size
+                    scatterplot.attr('r', 5 / event.transform.k);
+
+                    // Update the x-axis
+                    svg.select(".x-axis").call(xAxis.scale(event.transform.rescaleX(xScale)));
+
+                    // Update the y-axis
+                    svg.select(".y-axis").call(yAxis.scale(event.transform.rescaleY(yScale)));
+                } else {
+                    // Reset the transform to the center of the SVG
+                    g.attr('transform', 'translate(' + translateX + ', ' + translateY + ')');
+                }
+            });
+
+        // Apply the zoom behavior to the SVG
+        svg.call(zoom);
+
+        // Disable zooming on double click
+        svg.on('dblclick.zoom', null);
+    });
+
+    // Apply the zoom behavior to the SVG
+    svg.call(zoom);
+
+    // Disable zooming on double click
+    svg.on('dblclick.zoom', null);
+});
+    </script>
+</html>

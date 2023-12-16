@@ -1,0 +1,196 @@
+<!-- 
+    This HTML file containe a horizontal group bar chart using D3.js library.
+    The chart displays the top 5 youtube channels quarterly income.
+    The chart will iterate through the data and find the top 5 youtbe channels and display the income for each quarter.
+    The data is loaded from a CSV file. Location: Project2/data/top_100_youtubers.csv
+    The data format of the file looks like this:
+    Country,ChannelName,Category,MainVideo Category,username,followers,Maintopic,Moretopics,Likes,BoostIndex,EngagementRate,EngagementRate60days,Views,ViewsAvg.,CommentsAvg,YoutubeLink,,,started,Income q1,Income q2,Income q3,Income q4
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link href="https://fonts.googleapis.com/css2?family=Varela Round&family=Quicksand&family=Codystar&family=Varela+Round&display=swap" rel="stylesheet"> 
+    <meta charset="UTF-8">
+    <title>Group Bar Chart</title>
+
+    <!-- Include D3.js library -->
+    <script src="https://d3js.org/d3.v7.min.js" charset="utf-8"></script>  
+
+    <!-- Add some styling to the SVG element -->
+    <style>
+        svg{
+            background: wheat;
+        }
+        #description {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Create a div to hold the group bar chart -->
+    <div id="group_bar_chart"></div>
+    <div id="description">
+        <h2>Grouped Horizontal Bar Chart</h2>
+        <p>This is  a horizontal group bar chart using D3.js library.</p>
+        <p>The chart displays the top 5 youtube channels quarterly income for the year.</p>
+        <p>The data is loaded from a CSV file. Location: Project2/data/top_100_youtubers.csv</p>
+    <div>
+
+    <!-- Create a script to generate the chart -->
+    <script>
+        //This script will generate a horizontal group bar chart to only show the quartlerly income of 
+        //the top 5 youtube channels.
+
+        // Set the dimensions of the SVG element and the padding around the chart
+        var svgWidth = 800;
+        var svgHeight = 600;
+        var padding = 100;
+
+        // Create the SVG element and append it to the div
+        var svg = d3.select('#group_bar_chart')
+                    .append('svg')
+                    .attr('width', svgWidth)
+                    .attr('height', svgHeight);
+
+        // Calculate the inner dimensions of the chart
+        var inner_width = svgWidth - padding;
+        var inner_height = svgHeight - padding;
+
+        //create a group element to hold the chart
+        var g = svg.append('g')
+                    .attr('transform', 'translate(0, 50)')
+                    .attr('class', 'graph');
+
+        // Load the data from the CSV file
+        d3.csv('data/top_100_youtubers.csv').then(function(data){
+            
+                // Convert income fields to numbers
+                data.forEach(d => {
+                    d['Income q1'] = +d['Income q1'];
+                    d['Income q2'] = +d['Income q2'];
+                    d['Income q3'] = +d['Income q3'];
+                    d['Income q4'] = +d['Income q4'];
+                });
+
+                // Group the data by channel name and sum the income for each quarter
+                var grouped = d3.group(data, d => d.ChannelName);
+                var channels = Array.from(grouped, ([key, value]) => ({
+                    key,
+                    value: {
+                        totalIncome: d3.sum(value, d => d['Income q1'] + d['Income q2'] + d['Income q3'] + d['Income q4']),
+                        incomes: ['Income q1', 'Income q2', 'Income q3', 'Income q4'].map(q => d3.sum(value, d => d[q]))
+                    }
+                }))
+                .sort((a, b) => d3.descending(a.value.totalIncome, b.value.totalIncome))    // Sort the data by total income
+                .slice(0, 5);   // Get the top 5 channels
+
+
+                var quarters = ['Income q1', 'Income q2', 'Income q3', 'Income q4'];
+
+                //create the scales
+                var xScale = d3.scaleLinear()
+                                .domain([0, d3.max(channels, d => d3.max(d.value.incomes))])
+                                .range([padding, svgWidth - padding]);
+
+                var yScale = d3.scaleBand()
+                                .domain(channels.map(d => d.key))
+                                .range([padding, svgHeight - padding])
+                                .padding(0.1);
+
+                var colorScale = d3.scaleOrdinal()
+                                    .domain(quarters)
+                                    .range(d3.schemeCategory10);
+
+                //create the axes
+                var xAxis = d3.axisBottom(xScale)
+                            .ticks(5)
+                            .tickFormat(d => '$' + d/1000000 + 'M');
+
+                var yAxis = d3.axisLeft(yScale);
+
+                //append the axes to the chart
+                g.append('g')
+                    .attr('transform', 'translate(0, ' + (svgHeight - padding) + ')')
+                    .call(xAxis);
+
+                g.append('g')
+                .attr('transform', 'translate(' + padding + ', 0)')
+                .call(yAxis);
+
+                //create the bars
+                g.selectAll('rect')
+                    .data(channels)
+                    .enter()
+                    .append('g')
+                    .attr('transform', d => 'translate(0, ' + yScale(d.key) + ')')
+                    .selectAll('rect')
+                    .data(d => d.value.incomes)
+                    .enter()
+                    .append('rect')
+                    .attr('x', d => xScale(0))
+                    .attr('y', (d, i) => yScale.bandwidth() / 4 * i)
+                    .attr('width', d => xScale(d))
+                    .attr('height', yScale.bandwidth() / 4)
+                    .attr('fill', (d, i) => colorScale(quarters[i]))
+                //create the legend
+                var legend = g.append('g')
+                              .attr('transform', 'translate(' + (svgWidth - padding) + ', 0)');
+
+                legend.selectAll('rect')
+                        .data(quarters)
+                        .enter()
+                        .append('rect')
+                        .attr('x', 0)
+                        .attr('y', (d, i) => i * 20)
+                        .attr('width', 10)
+                        .attr('height', 10)
+                        .attr('fill', d => colorScale(d));
+
+                    legend.selectAll('text')
+                            .data(quarters)
+                            .enter()
+                            .append('text')
+                            .attr('x', 15)
+                            .attr('y', (d, i) => i * 20 + 10)
+                            .style('font-family', 'QuickSand')
+                            .text(d => d);
+
+                    //create the title
+                    g.append('text')
+                        .attr('x', svgWidth / 2)
+                        .attr('y', (padding / 2) - 50)
+                        .attr('text-anchor', 'middle')
+                        .attr('font-size', '1.5em')
+                        .style('font-family', 'Varela Round')
+                        .style('font-weight', 'bold')
+                        .text('Top 5 Youtube Channels Quarterly Income');
+                    // For the x-axis
+                    g.append("text")             
+                        .attr("transform",
+                            "translate(" + (inner_width/2) + " ," + 
+                                            (svgHeight - padding + 40) + ")")
+                        .style("text-anchor", "middle")
+                        .style('font-family', 'QuickSand')
+                        .style('font-size', '1.2em')
+                        .style('font-weight', 'bold')
+                        .text("Income");
+
+                    // For the y-axis
+                    g.append("text")
+                        .attr("transform", "rotate(-90)")
+                        .attr("y", 20)
+                        .attr("x",10 - (inner_width / 2))
+                        .attr("dy", "1em")
+                        .style("text-anchor", "middle")
+                        .style('font-family', 'QuickSand')
+                        .style('font-size', '1.2em')
+                        .style('font-weight', 'bold')
+                        .text("Channel");  
+
+            }).catch(function(error){
+                console.log(error);
+        });
+
+    </script>
+</body>
+</html>

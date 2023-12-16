@@ -1,0 +1,203 @@
+<!-- 
+    This will be an interactive line chart to show the Top 5 Channels average views over the course of 6 terms
+    The data is loaded from a CSV file. Location: Project2/data/avg_view_every_year.csv
+    The data format of the file looks like this: 
+    Year,T-Series,ABCkidTV - Nursery Rhymes,SET India,PewDiePie,MrBeast
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link href="https://fonts.googleapis.com/css2?family=Varela Round&family=Quicksand&family=Codystar&family=Varela+Round&display=swap" rel="stylesheet"> 
+    <meta charset="UTF-8">
+    <title>Chart with d3 and SVG</title>
+    <script src="http://d3js.org/d3.v7.min.js" charset="utf-8"></script>  
+    <style>
+        svg{
+            background: wheat;
+        }
+        .tooltip {
+        font-family: 'Quicksand', sans-serif;
+        }
+        .tooltip rect {
+            fill: none;
+        }
+        #description {
+            display: none;
+        }
+
+    </style>
+</head>
+<body>
+    <div id="line_chart"></div>
+    <div id="description">
+        <h2>Interactive Line Chart</h2>
+        <p>This is an interactive line chart to show the Top 5 Channels average views over the course of 6 terms</p>
+        <p>The legend is interactive, clicking on the legend will only show the corresponding line</p>
+        <p>Clicking on the chart will show all lines</p>
+        <p>The data is loaded from a CSV file. Location: Project2/data/avg_view_every_year.csv</p>
+        <div>
+    <script>
+        var svgwidth = 700;
+        var svgheight = 700;
+        var padding = 150;
+
+        // Create the SVG element and append it to the div
+        var svg = d3.select('#line_chart')
+                    .append('svg')
+                    .attr('width', svgwidth)
+                    .attr('height', svgheight);
+        
+        // Calculate the inner dimensions of the chart
+        var inner_width = svgwidth - padding;
+        var inner_height = svgheight - padding;
+
+        // Create a group element to hold the chart elements
+        var g = svg.append('g')
+                    .attr('transform', 'translate(-50, 50)')
+                    .attr('class', 'graph');
+        
+        // Load the data from a CSV file and log it to the console
+        d3.csv('./data/avg_view_every_year.csv').then(function(data){
+            console.log(data);
+
+            // Parse the data
+            data.forEach(function(d) {
+                d.Year = +d.Year;
+                d["T-Series"] = +d["T-Series"];
+                d["ABCkidTV - Nursery Rhymes"] = +d["ABCkidTV - Nursery Rhymes"];
+                d["SET India"] = +d["SET India"];
+                d.PewDiePie = +d.PewDiePie;
+                d.MrBeast = +d.MrBeast;
+            });
+
+            // Find the minimum and maximum view values
+            var minView = d3.min(data, function(d) {
+                return Math.min(d["T-Series"], d["ABCkidTV - Nursery Rhymes"], d["SET India"], d.PewDiePie, d.MrBeast);
+            });
+
+            var maxView = d3.max(data, function(d) {
+                return Math.max(d["T-Series"], d["ABCkidTV - Nursery Rhymes"], d["SET India"], d.PewDiePie, d.MrBeast);
+            });
+
+            // Define the scales
+            var x_scale = d3.scaleLinear()
+                            .domain([2017,2022])
+                            .range([padding, inner_width]);
+
+            var y_scale = d3.scaleLinear()
+                            .domain([minView, maxView])
+                            .range([inner_height, padding]);
+
+            var color = d3.scaleOrdinal(d3.schemeCategory10);
+
+            // Define the axes
+            var x_axis = d3.axisBottom(x_scale)
+                            .ticks(6)
+                            .tickFormat(d3.format('d'));
+
+            var y_axis = d3.axisLeft(y_scale)
+                            .ticks(6)
+                            .tickFormat(d3.format('.2s'));
+
+            // Draw the axes
+            g.append('g')
+                .attr('transform', 'translate(0, ' + inner_height + ')')
+                .call(x_axis);
+
+            g.append('g')
+                .attr('transform', 'translate(' + padding + ', 0)')
+                .call(y_axis);
+
+            // Add x-axis label
+    g.append('text')
+        .attr('x', (inner_width + padding) / 2)
+        .attr('y', (inner_height) + 50)
+        .attr('text-anchor', 'middle')
+        .text('Year')
+        .style('font-family', 'Quicksand')
+        .style('font-weight', 'bold');
+
+    // Add y-axis label
+    g.append('text')
+        .attr('x', -inner_width / 3 - padding)
+        .attr('y', (padding / 2) + 20)
+        .attr('text-anchor', 'middle')
+        .attr('transform', 'rotate(-90)')
+        .text('Number of Views')
+        .style('font-family', 'Quicksand')
+        .style('font-weight', 'bold');
+
+
+            // Add a title to the top of the SVG
+            svg.append('text')
+                .attr('x', svgwidth / 2)
+                .attr('y', padding / 2)
+                .attr('text-anchor', 'middle')
+                .style('font-size', '24px')
+                .style('font-weight', 'bold')
+                .style('font-family', 'Varela Round')
+                .text('Top 5 Channels Average Views Every Year');
+
+            // Define line generators
+            var lineGenerators = {
+            "T-Series": d3.line().x(d => x_scale(d.Year)).y(d => y_scale(d["T-Series"])),
+            "ABCkidTV - Nursery Rhymes": d3.line().x(d => x_scale(d.Year)).y(d => y_scale(d["ABCkidTV - Nursery Rhymes"])),
+            "SET India": d3.line().x(d => x_scale(d.Year)).y(d => y_scale(d["SET India"])),
+            PewDiePie: d3.line().x(d => x_scale(d.Year)).y(d => y_scale(d.PewDiePie)),
+            MrBeast: d3.line().x(d => x_scale(d.Year)).y(d => y_scale(d.MrBeast))
+        };
+
+            // Draw the lines
+            Object.keys(lineGenerators).forEach(channel => {
+                g.append('path')
+                    .datum(data)
+                    .attr('class', `line ${channel.replace(/ /g, '_').replace(/-/g, '_')}`)
+                    .attr('d', lineGenerators[channel])
+                    .attr('fill', 'none')
+                    .attr('stroke', color(channel))
+                    .attr('stroke-width', 2);
+            });
+
+            // Create legend
+            var legend = svg.selectAll('.legend')
+                            .data(Object.keys(lineGenerators))
+                            .enter().append('g')
+                            .attr('class', 'legend')
+                            .attr('transform', (d, i) => `translate(-10,${i * 20 + 100})`);
+
+                        legend.append('rect')
+                                .attr('x', svgwidth - 20)
+                                .attr('width', 18)
+                                .attr('height', 18)
+                                .style('fill', color);
+
+                        legend.append('text')
+                                .attr('x', svgwidth - 30)
+                                .attr('y', 9)
+                                .attr('dy', '.35em')
+                                .style('text-anchor', 'end')
+                                .style('font-family', 'QuickSand')
+                                .text(d => d);
+
+            // On legend click, toggle the visibility of the corresponding line
+            legend.on('click', function(event, d) {
+                var channel = d;
+
+                // On legend click, hide all lines
+                svg.selectAll('.line').style('display', 'none');
+
+                svg.selectAll
+                (`.line.${channel.replace(/ /g, '_')
+                .replace(/-/g, '_')}`)
+                .style('display', null);
+            });
+
+            svg.on('click', function (event) {
+            // On SVG click (but not on a legend item), show all lines
+            if (!event.target.matches('.legend rect, .legend text')) {
+                svg.selectAll('.line').style('display', null);
+                }
+            });
+        });
+    </script>
+</html>

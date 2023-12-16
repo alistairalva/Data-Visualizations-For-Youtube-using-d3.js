@@ -1,0 +1,211 @@
+<!-- 
+    This html file contains an interactive bar chart using D3.js library.
+    The chart displays the number of youtube channels by category
+    Should display interactively by selected country 
+    The data is grouped by category and the number of channels in each category is counted
+    There will be a dropdown menu to select the country
+    The data is loaded from a file. Location: Project2/data/top_100_youtubers.csv
+    The data format of the file looks like this:
+    Country,ChannelName,Category,MainVideo Category,username,followers,Maintopic,Moretopics,Likes,BoostIndex,EngagementRate,EngagementRate60days,Views,ViewsAvg.,CommentsAvg,YoutubeLink,,,started,Income q1,Income q2,Income q3,Income q4
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link href="https://fonts.googleapis.com/css2?family=Varela Round&family=Quicksand&family=Codystar&family=Varela+Round&display=swap" rel="stylesheet"> 
+    <meta charset="UTF-8">
+    <title>Interactive Bar Chart</title>
+
+    <!-- Include D3.js library -->
+    <script src="https://d3js.org/d3.v7.min.js" charset="utf-8"></script>  
+
+    <!-- Add some styling to the SVG element -->
+    <style>
+        svg{
+            background: wheat;
+        }
+        #description {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="interactive_bar_chart"></div>
+    <div id="description">
+        <h2>Interactive Barchart</h2>
+        <p> This is  an interactive bar chart using D3.js library.</p>
+        <p>The chart displays the number of youtube channels by category</p>
+        <p>Should display interactively by selected country</p>
+        <p>The data is grouped by category and the number of channels in each category is counted</p>
+        <p>There will be a dropdown menu to select the country</p>
+        <p> The chart is responsive to the window size and will be updated when the window is resized</p>
+        <p>The data is loaded from a file. Location: Project2/data/top_100_youtubers.csv</p>
+    <div>
+
+    <script>
+
+    var svgWidth = window.innerWidth;
+    var svgHeight = window.innerHeight;
+    var padding = 100;
+
+    var svg = d3.select('#interactive_bar_chart')
+                .append('svg')
+                .attr('width', svgWidth)
+                .attr('height', svgHeight);
+
+    var inner_width = svgWidth - padding;
+    var inner_height = svgHeight - padding;
+
+    //create a group element to hold the chart
+    var g = svg.append('g')
+                .attr('transform', 'translate(0, 50)')
+                .attr('class', 'graph');
+
+    // Load the data from the CSV file
+    d3.csv('./data/top_100_youtubers.csv').then(function(data) {
+
+        //get the unique country names
+        var countries = Array.from(new Set(data.map((d) => {return d.Country;})));
+
+        // Create a foreignObject
+        var foreignObject = g.append('foreignObject')
+            .attr('width', svgWidth)
+            .attr('height', 50) // Adjust as needed
+            .attr('x', 0)
+            .attr('y', 0);
+        
+        // Create a div for the dropdown
+        var dropdownDiv = foreignObject.append('xhtml:div');
+    
+        //create a dropdown menu to select the country
+        var dropdown = dropdownDiv.append('select')
+                .attr('id', 'country_dropdown')
+                .on('change', updateChart);
+
+        //add the options to the dropdown menu
+        dropdown.selectAll('option')
+                .data(countries)
+                .enter()
+                .append('option')
+                .text((d) => {return d;})
+                .attr('value', (d) => {return d;});
+
+        //create a function to update the chart when a new country is selected
+        function updateChart() {
+
+            //Update the SVG dimensions
+            svgWidth = window.innerWidth;
+            svgHeight = window.innerHeight;
+            svg.attr('width', svgWidth).attr('height', svgHeight);
+
+            inner_width = svgWidth - padding;
+            inner_height = svgHeight - padding;
+
+            // Get the selected country
+            var selected_country = d3.select('#country_dropdown').property('value');
+
+            // Filter the data by the selected country
+            var filtered_data = data.filter((d) => {return d.Country == selected_country;});
+
+            // Group the data by category and count the number of channels
+            var groupedData = d3.group(filtered_data, d => d.Category);
+            var dataByCategory = Array.from(groupedData, ([key, value]) => ({key, value: value.length}));
+
+            // Create a scale for the x axis
+            var x_scale = d3.scaleBand()
+                .domain(dataByCategory.map(d => d.key))
+                .range([padding, inner_width])
+                .padding(0.2);
+
+            // Create a scale for the y axis
+            var y_scale = d3.scaleLinear()
+                .domain([0, d3.max(dataByCategory, (d) => {return d.value;})])
+                .range([inner_height, padding]);
+
+            // Define the x axis
+            var x_axis = d3.axisBottom(x_scale);
+
+            // Define the y axis
+            var y_axis = d3.axisLeft(y_scale);    
+
+            //remove the previous x axis
+            g.selectAll('.x-axis').remove();
+
+            //remove the previous y axis
+            g.selectAll('.y-axis').remove();
+
+            //add the x axis to the chart
+            g.append('g')
+                .attr('transform', 'translate(0, ' + inner_height + ')')
+                .attr('class', 'x-axis')
+                .call(x_axis);
+
+            //add the y axis to the chart
+            g.append('g')
+                .attr('transform', 'translate(' + padding + ', 0)')
+                .attr('class', 'y-axis')
+                .call(y_axis);
+
+            //remove the previous bars
+            g.selectAll('.bar').remove();
+
+            //add the bars to the chart
+            g.selectAll('.bar')
+            .data(dataByCategory)
+            .enter()
+            .append('rect')
+            .attr('class', 'bar')
+            .attr('x', (d) => {return x_scale(d.key);})
+            .attr('y', (d) => {return y_scale(d.value);})
+            .attr('width', x_scale.bandwidth())
+            .attr('height', (d) => {return inner_height - y_scale(d.value);})
+            .attr('fill', 'steelblue');
+
+        g.selectAll('.label').remove();
+
+        // Add the labels to the chart
+        g.selectAll('.label')
+            .data(dataByCategory)
+            .enter()
+            .append('text')
+            .attr('class', 'label')
+            .attr('x', (d) => {return x_scale(d.key) + x_scale.bandwidth() / 2;})
+            .attr('y', (d) => {return y_scale(d.value) - 5;})
+            .attr('text-anchor', 'middle')
+            .text((d) => {return d.value;})
+            .style('font-family', 'Quicksand')
+            .style('font-size', '14px')
+            .style('font-weight', 'bold');
+            
+
+            //remove the previous title
+            g.selectAll('.title').remove();
+
+            // Calculate the font size for the title
+            var titleFontSize = svgWidth * 0.02; // Adjust the multiplier as needed
+
+            //add the title to the chart
+            g.append('text')
+                .attr('x', (inner_width + padding) / 2)
+                .attr('y', (padding / 2) - 50)
+                .attr('text-anchor', 'middle')
+                .attr('font-size', titleFontSize + 'px')
+                .style('font-family', 'Varela Round')
+                .style('font-weight', 'bold')
+                .attr('class', 'title')
+                .text('Number of Youtube Channels by Category in ' + selected_country);
+
+        }
+
+        //call the updateChart function to display the chart for the first time
+        updateChart();
+        
+        // Add an event listener for the resize event
+        window.addEventListener('resize', updateChart);
+        
+    })
+    .catch(function(error){
+        console.log(error);
+    });
+    </script>
+</body>
+</html>

@@ -1,0 +1,179 @@
+<!-- 
+    This is a pie chart to show the percentage of categories with 
+    the most followers.
+    The data is from a csv file located in the data folder. ./data/top_100_youtubers.csv
+    The format of the file looks like this:
+    Country,ChannelName,Category,MainVideo Category,username,followers,Maintopic,Moretopics,Likes,BoostIndex,EngagementRate,EngagementRate60days,Views,ViewsAvg.,CommentsAvg,YoutubeLink,,,started,Income q1,Income q2,Income q3,Income q4
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link href="https://fonts.googleapis.com/css2?family=Varela Round&family=Quicksand&family=Codystar&family=Varela+Round&display=swap" rel="stylesheet"> 
+    <meta charset="UTF-8">
+    <title>Chart with d3 and SVG</title>
+    <script src="http://d3js.org/d3.v7.min.js" charset="utf-8"></script>  
+    <style>
+        svg{
+            background: wheat;
+        }
+        .tooltip {
+        font-family: 'Quicksand', sans-serif;
+        }
+        .tooltip rect {
+            fill: none;
+        }
+        #description {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="pie_chart"></div>
+    <div id="description">
+        <h2>Donut Chart</h2>
+        <p>This is a donut chart to show the percentage of categories with 
+        the most followers.</p>
+        <p>Hover over the chart to see the number of followers for the corresponding category.</p>
+        <p>The data is from a csv file located in the data folder. ./data/top_100_youtubers.csv</p>
+    <div>
+    <script>
+        var svgwidth = 700;
+        var svgheight = 600;
+        var padding = 150;
+
+    // Load the CSV data
+    d3.csv('./data/top_100_youtubers.csv').then(function(data) {
+
+        // Group the data by category and sum the number of followers in each category
+        var categoryFollowers = d3.rollup(data, v => d3.sum(v, d => d.followers), d => d.Category);
+
+        // Convert the grouped data to an array
+        var categoryData = Array.from(categoryFollowers, ([category, followers]) => ({ category, followers }));
+
+        var inner_width = svgwidth - padding;
+        var inner_height = svgheight -padding;
+
+        // Select the chart container
+        var svg = d3.select('body').append('svg')
+        .attr('width', svgwidth)
+        .attr('height', svgheight)
+
+        // Add a title to the top of the SVG
+        svg.append('text')
+            .attr('x', inner_width / 2)
+            .attr('y', padding / 2)
+            .attr('text-anchor', 'middle')
+            .style('font-size', '24px')
+            .style('font-weight', 'bold')
+            .style('font-family', 'Varela Round')
+            .text('Categories with the most followers');
+
+        var g = svg.append('g')
+        .attr('transform', 'translate(' + inner_width / 2 + ',' +  (inner_height / 2 + padding - 30) + ')'); // Center the chart
+        
+        //Calculate the radius of the pie chart
+        var radius = Math.min(inner_width, inner_height) / 2;
+
+        //define the color scale
+        var color = d3.scaleOrdinal()
+            .domain(categoryData.map(d => d.category))
+            .range(d3.quantize(t => d3.interpolateSpectral(t * 0.8 + 0.1), categoryData.length).reverse());
+
+        // Create a pie chart
+        var pie = d3.pie()
+            .value(d => d.followers)
+            .sort(null);
+
+        // Define the arc generator
+        var arc = d3.arc()
+            .innerRadius(radius * 0.5)
+            .outerRadius(radius * 1);
+
+        // Define the arc label generator
+        var arcLabel = d3.arc()
+            .innerRadius(radius * 0.5)
+            .outerRadius(radius * 1);
+
+        // Create the pie chart
+        var arcs = g.selectAll('arc')
+            .data(pie(categoryData))
+            .enter().append('g')
+            .attr('class', 'arc');
+
+        // Add the arc paths
+        arcs.append('path')
+            .attr('fill', d => color(d.data.category))
+            .attr('d', arc)
+            .on('mouseover', function(event, d) {
+                // Highlight the arc
+                d3.select(this).style('opacity', 0.7);
+
+                // Create the tooltip
+                var tooltip = g.append('g')
+                    .attr('class', 'tooltip');
+
+                // Add the tooltip rectangle
+                tooltip.append('rect')
+                    .attr('width', 100)
+                    .attr('height', 50)
+                    .attr('fill', 'white')
+                    .style('opacity', 0.5);
+
+                // Add the tooltip text
+                tooltip.append('text')
+                    .attr('x', 50)
+                    .attr('y', 25)
+                    .attr('text-anchor', 'middle')
+                    .attr('dominant-baseline', 'central')
+                    .style('font-family', 'Quicksand')
+                    .style('font-size', '12px')
+                    .style('font-weight', 'bold')
+                    .text(d.data.category + ': ' + (d.data.followers / 1000000).toFixed(2) + 'M followers');
+
+                // Position the tooltip
+                var xPosition = d3.pointer(event)[0] - 15;
+                var yPosition = d3.pointer(event)[1] - 55;
+                tooltip.attr('transform', 'translate(' + xPosition + ',' + yPosition + ')');
+            })
+            .on('mouseout', function(d) {
+                // Remove the tooltip
+                d3.select('.tooltip').remove();
+
+                // Remove the highlight
+                d3.select(this).style('opacity', 1);
+            });
+
+        //Create a container to hold the legend
+        var legendContainer = svg.append('g')
+            .attr('transform', 'translate(' + (inner_width - 10) + ',' +  (inner_height / 2 + padding - 20) + ')');
+
+        // Add the legend
+        var legend = legendContainer.selectAll('.legend')
+            .data(pie(categoryData))
+            .enter().append('g')
+            .attr('class', 'legend')
+            .attr('transform', function(d, i) { return 'translate(0,' + i * 20 + ')'; });
+
+        // Add the legend rectangles
+        legend.append('rect')
+            .attr('x', 0)
+            .attr('width', 18)
+            .attr('height', 18)
+            .style('fill', d => color(d.data.category));
+
+        // Add the legend text
+        legend.append('text')
+            .attr('x', 24)
+            .attr('y', 9)
+            .attr('dy', '.35em')
+            .style('text-anchor', 'start')
+            .style('font-family', 'Varela Round')
+            .text(d => d.data.category);
+
+});
+
+
+</script>
+
+</body>
+</html>
